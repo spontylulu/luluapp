@@ -1,0 +1,42 @@
+# >>>>> Regole principali Flutter
+.dart_tool/
+.packages
+.pub/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.melos_tool/
+
+# >>>>> Android Studio / IntelliJ
+*.iml
+.gradle
+/local.properties
+/.idea/
+/.idea/*
+!.idea/vcs.xml
+
+# >>>>> macOS/Linux/Windows file di sistema
+.DS_Store
+Thumbs.db
+
+# >>>>> Output compilati
+*.apk
+*.aab
+*.app
+*.lock
+*.so
+*.dill
+
+# >>>>> Android NDK / CMake / JNI
+.cxx
+.externalNativeBuild
+
+# >>>>> Test/Profilazione
+/captures
+
+# >>>>> Output da emulatori
+*.log
+*.json
+
+# >>>>> File Git di conflitto (auto-generati)
+*.orig
