@@ -40,3 +40,6 @@ Thumbs.db
 
 # >>>>> File Git di conflitto (auto-generati)
 *.orig
+
+# >>>>> cartella ollama e .bat
+/ollama/

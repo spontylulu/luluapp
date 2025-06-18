@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:luluapp/screens/home_screen.dart';
-import 'package:luluapp/core/immersive_mode.dart';
+import 'core/identity_manager.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  ImmersiveMode.enable(); // Attiva modalità immersiva
+
+  // Carica o crea l'identità persistente di Lulu
+  final identita = await IdentityManager.loadIdentity();
+  print("👤 Identità caricata: ${identita.nome} - ${identita.ruolo}");
+
   runApp(const LuluApp());
 }
 
@@ -15,12 +19,8 @@ class LuluApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Lulu',
+      theme: ThemeData.dark(useMaterial3: true),
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
-        useMaterial3: true,
-        scaffoldBackgroundColor: Colors.grey[100],
-      ),
       home: const HomeScreen(),
     );
   }

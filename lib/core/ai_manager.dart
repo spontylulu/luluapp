@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:luluapp/config/config.dart';
+import 'package:luluapp/core/identity_manager.dart';
 
 class AIManager {
   static const _path = "/api/chat";
@@ -11,12 +12,24 @@ class AIManager {
     final url = Uri.parse('$baseUrl$_path');
 
     try {
+      final identity = await IdentityManager.loadIdentity();
+      final systemMessage = {
+        "role": "system",
+        "content": "Tu sei ${identity.nome}, ${identity.ruolo}. Il tuo tono deve essere ${identity.tono}."
+      };
+
+      final userMessage = {
+        "role": "user",
+        "content": prompt
+      };
+
       final response = await http.post(
         url,
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "messages": [
-            {"role": "user", "content": prompt}
+            systemMessage,
+            userMessage,
           ],
         }),
       );
