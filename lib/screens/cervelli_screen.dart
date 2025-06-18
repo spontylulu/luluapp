@@ -1,6 +1,8 @@
-// ============================
-// cervelli_screen.dart – Elenco cervelli AI attivi
-// ============================
+// 📄 cervelli_screen.dart
+// Schermata di gestione dei cervelli IA disponibili per Lulu.
+// Mostra un elenco con nomi dei modelli (es. Llama, Claude, GPT-4...)
+// Ogni cervello è accompagnato da uno switch (non ancora funzionante).
+// In futuro permetterà l’attivazione/disattivazione dinamica delle IA locali/API.
 
 import 'package:flutter/material.dart';
 

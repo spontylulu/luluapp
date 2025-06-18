@@ -1,6 +1,8 @@
-// ============================
-// project_screen.dart – Elenco contesti (Progetti)
-// ============================
+// 📄 project_screen.dart
+// Schermata dei progetti attivi o contesti tematici dell’utente.
+// Elenca i macro-ambiti come “Lavoro”, “Arduino”, “Scrittura”, ecc.
+// Ogni progetto è selezionabile, ma per ora mostra solo un messaggio fittizio.
+// In futuro aprirà una schermata specifica o filtrerà la memoria per contesto.
 
 import 'package:flutter/material.dart';
 

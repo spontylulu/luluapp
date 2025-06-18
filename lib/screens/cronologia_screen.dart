@@ -1,6 +1,7 @@
-// ============================
-// cronologia_screen.dart – Cronologia interazioni utente
-// ============================
+// 📄 cronologia_screen.dart
+// Schermata semplificata per mostrare la cronologia delle interazioni con Lulu.
+// Attualmente visualizza una lista statica di messaggi utente e IA.
+// In futuro sarà collegata a ChatMemoryManager per mostrare la cronologia reale delle chat.
 
 import 'package:flutter/material.dart';
 

@@ -1,10 +1,13 @@
+// 📄 home_screen.dart
+// Schermata principale dell’app Lulu.
+// Carica dinamicamente le chat da index.json tramite ChatMemoryManager
+// Ordina per ultimo utilizzo, mostra conversazione corrente, salva automaticamente ogni messaggio.
+// Integra SafeArea per evitare che il campo testo finisca sotto i tasti di sistema Android.
+
 import 'package:flutter/material.dart';
-import 'package:luluapp/screens/project_screen.dart';
-import 'package:luluapp/screens/cervelli_screen.dart';
-import 'package:luluapp/screens/cronologia_screen.dart';
-import 'package:luluapp/screens/impostazioni_screen.dart';
-import 'package:luluapp/screens/webview_screen.dart';
 import 'package:luluapp/core/ai_manager.dart';
+import 'package:luluapp/core/chat_memory_manager.dart';
+import 'package:luluapp/screens/chat_drawer.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,127 +17,178 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final List<String> messages = [
-    "Tu: Ciao Lulu!",
-    "Lulu: Ciao! Come posso aiutarti oggi?",
-  ];
   final TextEditingController _controller = TextEditingController();
+  final List<ChatMessage> messages = [];
+  List<ChatIndexEntry> chatIndex = [];
   bool _isSending = false;
+  String currentChat = "";
+
+  @override
+  void initState() {
+    super.initState();
+    _caricaChatRecenti();
+  }
+
+  Future<void> _caricaChatRecenti() async {
+    final index = await ChatMemoryManager.getIndex();
+    setState(() {
+      chatIndex = index;
+      currentChat = index.isNotEmpty ? index.first.nome : "chat_default";
+    });
+    _loadMessages(currentChat);
+  }
+
+  Future<void> _loadMessages(String chatName) async {
+    final history = await ChatMemoryManager.loadMessages(chatName);
+    setState(() {
+      messages.clear();
+      messages.addAll(history);
+    });
+  }
+
+  Future<void> _salvaMessaggio(String role, String contenuto) async {
+    final msg = ChatMessage(
+      mittente: role,
+      contenuto: contenuto,
+      timestamp: DateTime.now(),
+    );
+    await ChatMemoryManager.appendMessage(currentChat, msg);
+    setState(() => messages.add(msg));
+  }
 
   Future<void> _askLulu(String prompt) async {
-    setState(() {
-      _isSending = true;
-    });
+    setState(() => _isSending = true);
+    await _salvaMessaggio("utente", prompt);
 
     final reply = await AIManager.askLulu(prompt);
+    await _salvaMessaggio("ia", reply);
 
-    setState(() {
-      messages.add("Lulu: $reply");
-      _isSending = false;
-    });
+    setState(() => _isSending = false);
   }
 
   void _sendMessage() {
     final text = _controller.text.trim();
-    if (text.isNotEmpty) {
-      setState(() {
-        messages.add("Tu: $text");
-      });
-      _controller.clear();
-      _askLulu(text);
-    }
+    if (text.isEmpty) return;
+    _controller.clear();
+    _askLulu(text);
   }
 
-  void _onMenuItemTap(String label) {
-    Navigator.pop(context);
-    switch (label) {
-      case 'Progetti':
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const ProjectScreen()));
-        break;
-      case 'Cervelli AI':
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const CervelliScreen()));
-        break;
-      case 'Cronologia':
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const CronologiaScreen()));
-        break;
-      case 'Impostazioni':
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const ImpostazioniScreen()));
-        break;
-      case 'Lulu Web':
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const WebviewScreen()));
-        break;
-      default:
-        break;
-    }
+  void _nuovaChat() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final TextEditingController nameCtrl = TextEditingController();
+        return AlertDialog(
+          title: const Text("Nuova chat"),
+          content: TextField(
+            controller: nameCtrl,
+            decoration: const InputDecoration(hintText: "Nome chat"),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                final name = nameCtrl.text.trim();
+                if (name.isNotEmpty) {
+                  await ChatMemoryManager.addToIndex(name);
+                  setState(() {
+                    currentChat = name;
+                    messages.clear();
+                  });
+                  _caricaChatRecenti();
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text("Crea"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _selezionaChat(String nome) async {
+    setState(() {
+      currentChat = nome;
+      messages.clear();
+    });
+    await _loadMessages(nome);
+    await _caricaChatRecenti();
+  }
+
+  void _vaiAllHub() {
+    Navigator.pushNamed(context, "/hub");
   }
 
   @override
   Widget build(BuildContext context) {
+    final chatNames = chatIndex.map((e) => e.nome).toList();
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Lulu'),
+        title: Text("💬 $currentChat"),
       ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            const DrawerHeader(
-              decoration: BoxDecoration(color: Colors.indigo),
-              child: Text('Menu', style: TextStyle(color: Colors.white, fontSize: 24)),
-            ),
-            ...[
-              'Home',
-              'Progetti',
-              'Cervelli AI',
-              'Cronologia',
-              'Impostazioni',
-              'Lulu Web',
-            ].map((label) => ListTile(
-              title: Text(label),
-              onTap: () => _onMenuItemTap(label),
-            )),
-          ],
-        ),
+      drawer: ChatDrawer(
+        chatList: chatNames,
+        onNewChat: _nuovaChat,
+        onChatSelected: _selezionaChat,
+        onLuluTap: _vaiAllHub,
       ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.all(12),
-                itemCount: messages.length,
-                itemBuilder: (_, index) => Text(messages[index]),
-              ),
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(12),
+              itemCount: messages.length,
+              itemBuilder: (context, index) {
+                final msg = messages[index];
+                final isUser = msg.mittente == "utente";
+                return Align(
+                  alignment:
+                  isUser ? Alignment.centerRight : Alignment.centerLeft,
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isUser ? Colors.blueGrey : Colors.deepPurple,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      msg.contenuto,
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ),
+                );
+              },
             ),
-            if (_isSending)
-              const Padding(
-                padding: EdgeInsets.all(8),
-                child: CircularProgressIndicator(),
-              ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+          ),
+          const Divider(height: 1),
+          SafeArea(
+            bottom: true,
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.all(8),
               child: Row(
                 children: [
                   Expanded(
                     child: TextField(
                       controller: _controller,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        hintText: 'Scrivi un messaggio...',
-                      ),
                       onSubmitted: (_) => _sendMessage(),
+                      decoration: const InputDecoration(
+                        hintText: "Scrivi a Lulu...",
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
+                  IconButton(
+                    icon: _isSending
+                        ? const CircularProgressIndicator()
+                        : const Icon(Icons.send),
                     onPressed: _isSending ? null : _sendMessage,
-                    child: const Text('Invia'),
                   ),
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

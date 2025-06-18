@@ -1,3 +1,9 @@
+// 📄 impostazioni_screen.dart
+// Schermata delle impostazioni IA per Lulu.
+// Permette all’utente di inserire e salvare l’indirizzo dell’endpoint IA (es. via LocalTunnel).
+// I dati vengono salvati nel sistema di configurazione (config.dart).
+// Mostra un messaggio di conferma al salvataggio.
+
 import 'package:flutter/material.dart';
 import 'package:luluapp/config/config.dart';
 

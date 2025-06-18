@@ -1,6 +1,7 @@
-// ============================
-// webview_screen.dart – Fallback interfaccia web Lulu
-// ============================
+// 📄 webview_screen.dart
+// Schermata WebView per accedere alla versione web di Lulu come fallback.
+// Carica l’interfaccia pubblicata su Render.com o altro endpoint esterno.
+// Utile per accedere alla versione remota del server IA da dispositivi mobili o browser embedded.
 
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
