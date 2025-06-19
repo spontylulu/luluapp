@@ -1,26 +1,18 @@
 // 📄 main.dart
-// Punto di ingresso principale dell’app Lulu.
-// - Inizializza Flutter e carica l’identità da identity_manager.dart
-// - Lancia l’app con tema scuro Material 3
-// - Definisce tutte le rotte per navigare tra schermate
+// Punto di ingresso dell’app Lulu. Imposta il tema e gestisce le rotte principali.
 
 import 'package:flutter/material.dart';
 import 'package:luluapp/screens/home_screen.dart';
-import 'core/identity_manager.dart';
 import 'package:luluapp/screens/hub_screen.dart';
+import 'package:luluapp/screens/webview_screen.dart';
 import 'package:luluapp/screens/project_screen.dart';
 import 'package:luluapp/screens/cervelli_screen.dart';
 import 'package:luluapp/screens/cronologia_screen.dart';
 import 'package:luluapp/screens/impostazioni_screen.dart';
-import 'package:luluapp/screens/webview_screen.dart';
+import 'package:luluapp/screens/debug_screen.dart';
+import 'package:luluapp/screens/log_screen.dart'; // ✅ Aggiunto
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  // Carica o crea l'identità persistente di Lulu
-  final identita = await IdentityManager.loadIdentity();
-  print("👤 Identità caricata: ${identita.nome} - ${identita.ruolo}");
-
+void main() {
   runApp(const LuluApp());
 }
 
@@ -31,17 +23,23 @@ class LuluApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Lulu',
-      theme: ThemeData.dark(useMaterial3: true),
+      theme: ThemeData.dark().copyWith(
+        scaffoldBackgroundColor: Colors.black,
+        useMaterial3: true,
+        textTheme: ThemeData.dark().textTheme.apply(fontFamily: 'Roboto'),
+      ),
       debugShowCheckedModeBanner: false,
-      home: const HomeScreen(),
+      initialRoute: '/',
       routes: {
-        '/home': (context) => const HomeScreen(),
-        '/hub': (context) => const HubScreen(),
-        '/progetti': (context) => const ProjectScreen(),
-        '/cervelli': (context) => const CervelliScreen(),
-        '/cronologia': (context) => const CronologiaScreen(),
-        '/impostazioni': (context) => const ImpostazioniScreen(),
-        '/webview': (context) => const WebviewScreen(),
+        '/': (_) => const HomeScreen(),
+        '/hub': (_) => const HubScreen(),
+        '/webview': (_) => const WebviewScreen(),
+        '/progetti': (_) => const ProjectScreen(),
+        '/cervelli': (_) => const CervelliScreen(),
+        '/cronologia': (_) => const CronologiaScreen(),
+        '/impostazioni': (_) => const ImpostazioniScreen(),
+        '/debug': (_) => const DebugScreen(),
+        '/log': (_) => const LogScreen(), // ✅ Aggiunto
       },
     );
   }

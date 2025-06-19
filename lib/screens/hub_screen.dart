@@ -2,6 +2,7 @@
 // Schermata centrale del sistema. Raggiungibile cliccando su “Lulu” nel menu laterale.
 // Contiene i collegamenti a tutte le funzioni generali:
 // - Home, Progetti, Cervelli IA, Cronologia, Webview, Impostazioni generali
+// - Log di sistema, Debug IA
 
 import 'package:flutter/material.dart';
 
@@ -62,6 +63,21 @@ class HubScreen extends StatelessWidget {
             title: const Text("Impostazioni generali"),
             onTap: () {
               Navigator.pushNamed(context, '/impostazioni');
+            },
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.article),
+            title: const Text("Log di sistema"),
+            onTap: () {
+              Navigator.pushNamed(context, '/log');
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.bug_report),
+            title: const Text("Debug IA"),
+            onTap: () {
+              Navigator.pushNamed(context, '/debug');
             },
           ),
         ],

@@ -1,7 +1,14 @@
+// 📄 ai_manager.dart
+// Gestisce l’invio dei prompt all’IA e il ping dell’endpoint.
+// Mostra solo gli errori critici (proxy LLaMA o memoria) nel log.
+
 import 'dart:convert';
+import 'dart:io';
+import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:luluapp/config/config.dart';
 import 'package:luluapp/core/identity_manager.dart';
+import 'package:luluapp/core/log_service.dart';
 
 class AIManager {
   static const _path = "/api/chat";
@@ -36,12 +43,21 @@ class AIManager {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return data['message']['content'] ?? '(nessuna risposta)';
+        final reply = data['message']['content'] ?? '(nessuna risposta)';
+        return reply;
       } else {
+        LogService.add("❌ Errore proxy LLaMA [${response.statusCode}]: ${response.reasonPhrase}");
         return "(Errore ${response.statusCode})";
       }
+    } on SocketException catch (e) {
+      LogService.add("❌ Connessione rifiutata dal proxy LLaMA: $e");
+      return "(Errore di connessione)";
+    } on TimeoutException catch (e) {
+      LogService.add("❌ Timeout nella risposta dal proxy LLaMA: $e");
+      return "(Timeout)";
     } catch (e) {
-      return "(Errore di rete)";
+      LogService.add("❌ Errore imprevisto durante la chiamata all’IA: $e");
+      return "(Errore generico)";
     }
   }
 
@@ -53,7 +69,14 @@ class AIManager {
     try {
       final response = await http.get(url).timeout(const Duration(seconds: 2));
       return response.statusCode == 200;
-    } catch (_) {
+    } on SocketException catch (e) {
+      LogService.add("❌ Errore ping: impossibile raggiungere il proxy LLaMA ($e)");
+      return false;
+    } on TimeoutException catch (e) {
+      LogService.add("❌ Errore ping: timeout durante la connessione ($e)");
+      return false;
+    } catch (e) {
+      LogService.add("❌ Errore ping: problema sconosciuto ($e)");
       return false;
     }
   }

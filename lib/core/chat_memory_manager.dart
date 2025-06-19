@@ -3,12 +3,13 @@
 // - Salva ogni messaggio in file giornalieri per sessione (es. chat_ricette/2025-06-19.json)
 // - Registra metadata nel file index.json per ogni chat creata
 // - Permette il caricamento e salvataggio di messaggi (utente e IA)
-// - In futuro supporterà ricerche e filtri su hashtag o contenuto
+// - Mostra solo errori critici in caso di problemi di scrittura o lettura
 
 import 'dart:convert';
 import 'dart:io';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:luluapp/core/log_service.dart';
 
 class ChatMessage {
   final String mittente;
@@ -83,34 +84,46 @@ class ChatMemoryManager {
   }
 
   static Future<void> appendMessage(String sessione, ChatMessage message) async {
-    final filePath = await _getTodayFilePath(sessione);
-    final file = File(filePath);
-    List<ChatMessage> history = [];
+    try {
+      final filePath = await _getTodayFilePath(sessione);
+      final file = File(filePath);
+      List<ChatMessage> history = [];
 
-    if (await file.exists()) {
-      final content = await file.readAsString();
-      history = List<Map<String, dynamic>>.from(jsonDecode(content))
-          .map((msg) => ChatMessage.fromJson(msg))
-          .toList();
+      if (await file.exists()) {
+        final content = await file.readAsString();
+        history = List<Map<String, dynamic>>.from(jsonDecode(content))
+            .map((msg) => ChatMessage.fromJson(msg))
+            .toList();
+      }
+
+      history.add(message);
+      final updatedJson = jsonEncode(history.map((m) => m.toJson()).toList());
+      await file.writeAsString(updatedJson, flush: true);
+      await updateIndex(sessione);
+    } catch (e) {
+      LogService.add("❌ Errore scrittura memoria (appendMessage) [$sessione]: $e");
     }
-
-    history.add(message);
-    final updatedJson = jsonEncode(history.map((m) => m.toJson()).toList());
-    await file.writeAsString(updatedJson, flush: true);
-
-    await updateIndex(sessione);
   }
 
   static Future<List<ChatMessage>> loadMessages(String sessione) async {
-    final filePath = await _getTodayFilePath(sessione);
-    final file = File(filePath);
-    if (!await file.exists()) return [];
+    try {
+      final filePath = await _getTodayFilePath(sessione);
+      final file = File(filePath);
+      if (!await file.exists()) {
+        return [];
+      }
 
-    final content = await file.readAsString();
-    await updateIndex(sessione);
-    return List<Map<String, dynamic>>.from(jsonDecode(content))
-        .map((msg) => ChatMessage.fromJson(msg))
-        .toList();
+      final content = await file.readAsString();
+      await updateIndex(sessione);
+      final messages = List<Map<String, dynamic>>.from(jsonDecode(content))
+          .map((msg) => ChatMessage.fromJson(msg))
+          .toList();
+
+      return messages;
+    } catch (e) {
+      LogService.add("❌ Errore lettura memoria (loadMessages) [$sessione]: $e");
+      return [];
+    }
   }
 
   static Future<List<String>> listSessions() async {
@@ -131,53 +144,68 @@ class ChatMemoryManager {
   }
 
   static Future<void> addToIndex(String sessione) async {
-    final file = await _getIndexFile();
-    Map<String, dynamic> index = {};
+    try {
+      final file = await _getIndexFile();
+      Map<String, dynamic> index = {};
 
-    if (await file.exists()) {
-      index = jsonDecode(await file.readAsString());
-    }
+      if (await file.exists()) {
+        index = jsonDecode(await file.readAsString());
+      }
 
-    if (!index.containsKey(sessione)) {
-      index[sessione] = ChatIndexEntry(
-        nome: sessione,
-        creata: DateTime.now(),
-        ultimoAccesso: DateTime.now(),
-      ).toJson();
-      await file.writeAsString(jsonEncode(index), flush: true);
+      if (!index.containsKey(sessione)) {
+        index[sessione] = ChatIndexEntry(
+          nome: sessione,
+          creata: DateTime.now(),
+          ultimoAccesso: DateTime.now(),
+        ).toJson();
+        await file.writeAsString(jsonEncode(index), flush: true);
+      }
+    } catch (e) {
+      LogService.add("❌ Errore aggiornamento indice (addToIndex) [$sessione]: $e");
     }
   }
 
   static Future<void> updateIndex(String sessione) async {
-    final file = await _getIndexFile();
-    Map<String, dynamic> index = {};
+    try {
+      final file = await _getIndexFile();
+      Map<String, dynamic> index = {};
 
-    if (await file.exists()) {
-      index = jsonDecode(await file.readAsString());
+      if (await file.exists()) {
+        index = jsonDecode(await file.readAsString());
+      }
+
+      final now = DateTime.now();
+
+      index[sessione] = ChatIndexEntry(
+        nome: sessione,
+        creata: index[sessione] != null
+            ? DateTime.parse(index[sessione]['creata'])
+            : now,
+        ultimoAccesso: now,
+      ).toJson();
+
+      await file.writeAsString(jsonEncode(index), flush: true);
+    } catch (e) {
+      LogService.add("❌ Errore aggiornamento indice (updateIndex) [$sessione]: $e");
     }
-
-    final now = DateTime.now();
-
-    index[sessione] = ChatIndexEntry(
-      nome: sessione,
-      creata: index[sessione] != null
-          ? DateTime.parse(index[sessione]['creata'])
-          : now,
-      ultimoAccesso: now,
-    ).toJson();
-
-    await file.writeAsString(jsonEncode(index), flush: true);
   }
 
   static Future<List<ChatIndexEntry>> getIndex() async {
-    final file = await _getIndexFile();
-    if (!await file.exists()) return [];
+    try {
+      final file = await _getIndexFile();
+      if (!await file.exists()) return [];
 
-    final content = await file.readAsString();
-    final data = jsonDecode(content) as Map<String, dynamic>;
-    return data.values
-        .map((e) => ChatIndexEntry.fromJson(e as Map<String, dynamic>))
-        .toList()
-      ..sort((a, b) => b.ultimoAccesso.compareTo(a.ultimoAccesso));
+      final content = await file.readAsString();
+      final data = jsonDecode(content) as Map<String, dynamic>;
+      final list = data.values
+          .map((e) => ChatIndexEntry.fromJson(e as Map<String, dynamic>))
+          .toList()
+        ..sort((a, b) => b.ultimoAccesso.compareTo(a.ultimoAccesso));
+
+      return list;
+    } catch (e) {
+      LogService.add("❌ Errore lettura indice memoria (getIndex): $e");
+      return [];
+    }
   }
 }
